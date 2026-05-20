@@ -10,4 +10,4 @@ import pytest
 @pytest.fixture(scope="session")
 def resource_dir():
     """Fixture that provides the path to the test resources directory."""
-    return Path(__file__).parent / "resources
+    return Path(__file__).parent / "resources"
