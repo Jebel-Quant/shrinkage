@@ -1,3 +1,5 @@
+"""Linear shrinkage estimator using cvx-linalg."""
+
 import numpy as np
 
 from cvx.linalg import norm

@@ -1,3 +1,5 @@
+"""Linear shrinkage estimators for covariance matrices."""
+
 import numpy as np
 
 
