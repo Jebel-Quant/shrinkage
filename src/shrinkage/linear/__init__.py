@@ -17,7 +17,7 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
         Demeaning control. None (default): demean Y, reduce effective sample
         size by 1. 0: no demeaning. 1: Y is already demeaned.
 
-    Returns
+    Returns:
     -------
     Shrinkage covariance estimator of shape (p, p).
     """
@@ -31,9 +31,9 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
     sample = (Y.T @ Y) / n
     target = np.diag(sample).mean() * np.eye(p)
 
-    Y2 = Y ** 2
+    Y2 = Y**2
     sample2 = (Y2.T @ Y2) / n
-    pi_hat = np.sum(sample2 - sample ** 2)
+    pi_hat = np.sum(sample2 - sample**2)
     gamma_hat = np.linalg.norm(sample - target, ord="fro") ** 2
 
     shrinkage = max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
