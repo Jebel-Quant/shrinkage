@@ -124,11 +124,6 @@ line-ending = "auto"
     "RUF001",  # Allow ambiguous unicode in notebooks
     "RUF002",  # Allow ambiguous unicode in notebooks
 ]
-# Linear shrinkage estimators - allow uppercase names for mathematical convention (Y, N, Y2)
-"src/shrinkage/linear/*.py" = [
-    "N803",  # Argument name should be lowercase (Y is standard matrix notation)
-    "N806",  # Variable in function should be lowercase (N, Y, Y2 are mathematical conventions)
-]
 # Internal utility scripts - specific exceptions for internal tooling
 ".rhiza/utils/*.py" = [
     "PLW2901",  # Allow loop variable overwriting in utility scripts
