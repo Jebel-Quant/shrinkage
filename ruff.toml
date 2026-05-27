@@ -124,6 +124,11 @@ line-ending = "auto"
     "RUF001",  # Allow ambiguous unicode in notebooks
     "RUF002",  # Allow ambiguous unicode in notebooks
 ]
+# Scientific/mathematical code - allow uppercase variable names per mathematical convention
+"src/shrinkage/linear/*.py" = [
+    "N803",  # Allow uppercase argument names (e.g. Y for data matrix)
+    "N806",  # Allow uppercase variable names (e.g. N for sample size, Y2 for squared data)
+]
 # Internal utility scripts - specific exceptions for internal tooling
 ".rhiza/utils/*.py" = [
     "PLW2901",  # Allow loop variable overwriting in utility scripts
