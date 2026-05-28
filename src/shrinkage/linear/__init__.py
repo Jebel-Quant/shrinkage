@@ -20,6 +20,13 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
     Returns:
     -------
     Shrinkage covariance estimator of shape (p, p).
+
+    Examples:
+        >>> import numpy as np
+        >>> rng = np.random.default_rng(42)
+        >>> Y = rng.standard_normal((100, 3))
+        >>> cov1para(Y).shape
+        (3, 3)
     """
     N, p = Y.shape
 

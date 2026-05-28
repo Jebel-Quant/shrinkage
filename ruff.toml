@@ -109,7 +109,10 @@ line-ending = "auto"
     "PLW1510",  # Allow subprocess without explicit check parameter
 ]
 "tests/**/*.py" = [
+    "D103",     # Test functions don't require docstrings
     "ERA001",   # Allow commented out code in project tests
+    "N803",     # Allow uppercase argument names (math convention, e.g. Y for data matrix)
+    "N806",     # Allow uppercase variable names (math convention, e.g. Y for data matrix)
     "PLR2004",  # Allow magic values in project tests
     "RUF002",   # Allow ambiguous unicode in project tests
     "RUF012",   # Allow mutable class attributes in project tests
