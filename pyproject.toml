@@ -41,5 +41,8 @@ lint = ["ruff>=0.9"]
 package_module_name_map = {"cvx-linalg" = "cvx"}
 per_rule_ignores = {"DEP002" = ["polars", "pytest", "pytest-cov"]}
 
+[tool.coverage.run]
+omit = ["src/shrinkage/linear/_cov1para_debug.py"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/shrinkage"]
