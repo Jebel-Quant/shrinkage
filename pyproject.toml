@@ -20,7 +20,7 @@ classifiers = [
 dependencies = [
     "cvx-linalg>=0.6",
     "numpy>=2.4.6",
-    "polars>=1.0",
+    "polars>=1.41.2",
 ]
 
 [project.urls]
