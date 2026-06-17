@@ -45,7 +45,8 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
     print(f"gamma_hat / pi_hat: {pi_hat / (gamma_hat * n)}")
     shrinkage = max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
     print(f"shrinkage: {shrinkage}")
-    return shrinkage * target + (1 - shrinkage) * sample
+    estimator: np.ndarray = shrinkage * target + (1 - shrinkage) * sample
+    return estimator
 
 
 if __name__ == "__main__":

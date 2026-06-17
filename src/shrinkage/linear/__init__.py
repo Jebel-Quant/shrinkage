@@ -44,4 +44,5 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
     gamma_hat = np.linalg.norm(sample - target, ord="fro") ** 2
 
     shrinkage = max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
-    return shrinkage * target + (1 - shrinkage) * sample
+    estimator: np.ndarray = shrinkage * target + (1 - shrinkage) * sample
+    return estimator
