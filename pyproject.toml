@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
     "cvx-linalg>=0.8.0",
     "numpy>=2.4.6",
-    "polars>=1.41.2",
+    "polars>=1.42.0",
 ]
 
 [project.urls]
@@ -36,7 +36,7 @@ dev = [
 
 [dependency-groups]
 test = ["pytest>=9.1.1", "pytest-cov>=5.0"]
-lint = ["ruff>=0.15.18"]
+lint = ["ruff>=0.15.20"]
 
 [tool.deptry]
 package_module_name_map = {"cvx-linalg" = "cvx"}
