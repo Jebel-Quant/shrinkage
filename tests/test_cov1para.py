@@ -59,11 +59,78 @@ def test_k_nan_treated_as_none(rng):
     np.testing.assert_allclose(result_nan, result_none)
 
 
-def test_known_values():
-    """The estimator yields a symmetric PSD matrix of the expected shape."""
+def _reference_cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
+    """Independent re-implementation of the Ledoit-Wolf one-parameter estimator.
+
+    Mirrors the published formula directly so the test pins the production code
+    to a numerical reference rather than only to structural invariants.
+    """
+    N, p = Y.shape
+    if k is None or (isinstance(k, float) and np.isnan(k)):
+        Y = Y - Y.mean(axis=0)
+        k = 1
+    n = N - k
+    sample = (Y.T @ Y) / n
+    mu = np.trace(sample) / p
+    target = mu * np.eye(p)
+    Y2 = Y**2
+    pi_hat = np.sum((Y2.T @ Y2) / n - sample**2)
+    gamma_hat = np.sum((sample - target) ** 2)
+    shrinkage = max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
+    return shrinkage * target + (1 - shrinkage) * sample
+
+
+def test_matches_reference_implementation():
+    """cov1para reproduces an independent reference computation to float tolerance."""
     rng = np.random.default_rng(0)
     Y = rng.standard_normal((200, 4))
+    np.testing.assert_allclose(cov1para(Y), _reference_cov1para(Y))
+
+
+def test_scaled_identity_input_is_a_fixed_point():
+    """When the sample covariance already is a scaled identity, so is the result.
+
+    Sample and target coincide, so the result equals that scaled identity for any
+    shrinkage weight: equal diagonal entries and zero off-diagonal entries. This
+    pins the scaled-identity target structure independently of the weight.
+    """
+    # Two orthogonal, equal-norm columns -> Y.T @ Y is a scaled identity.
+    Y = np.array([[1.0, 1.0], [1.0, -1.0], [-1.0, 1.0], [-1.0, -1.0]])
+    # sample == target gives gamma_hat == 0; the clamp still yields the target.
+    with np.errstate(divide="ignore"):
+        result = cov1para(Y, k=0)
+    diag = np.diag(result)
+    off_diagonal = result - np.diag(diag)
+    np.testing.assert_allclose(off_diagonal, np.zeros((2, 2)), atol=1e-12)
+    np.testing.assert_allclose(diag, np.full(2, diag[0]))
+
+
+def test_shrinkage_within_unit_interval(rng):
+    """The estimator stays between the sample covariance and the target.
+
+    A convex combination with weight in [0, 1] keeps every entry bounded by the
+    corresponding sample and target entries, which fails if the weight escapes
+    the clamp.
+    """
+    Y = rng.standard_normal((40, 4))
+    n = Y.shape[0] - 1
+    Yd = Y - Y.mean(axis=0)
+    sample = (Yd.T @ Yd) / n
+    target = np.diag(sample).mean() * np.eye(4)
     result = cov1para(Y)
-    assert result.shape == (4, 4)
-    assert np.all(np.linalg.eigvalsh(result) >= -1e-10)
-    np.testing.assert_allclose(result, result.T)
+    lo = np.minimum(sample, target)
+    hi = np.maximum(sample, target)
+    assert np.all(result >= lo - 1e-10)
+    assert np.all(result <= hi + 1e-10)
+
+
+def test_single_variable_returns_sample_variance(rng):
+    """For p=1 the target equals the sample, so the result is the sample variance."""
+    Y = rng.standard_normal((100, 1))
+    n = Y.shape[0] - 1
+    Yd = Y - Y.mean(axis=0)
+    expected = (Yd.T @ Yd) / n
+    # p == 1 makes sample == target (gamma_hat == 0); the clamp pins shrinkage.
+    with np.errstate(divide="ignore"):
+        result = cov1para(Y)
+    np.testing.assert_allclose(result, expected)
