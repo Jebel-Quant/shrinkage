@@ -21,7 +21,6 @@ classifiers = [
 dependencies = [
     "cvx-linalg>=0.8.0",
     "numpy>=2.4.6",
-    "polars>=1.41.2",
 ]
 
 [project.urls]
@@ -40,7 +39,7 @@ lint = ["ruff>=0.15.18"]
 
 [tool.deptry]
 package_module_name_map = {"cvx-linalg" = "cvx"}
-per_rule_ignores = {"DEP002" = ["polars", "pytest", "pytest-cov"]}
+per_rule_ignores = {"DEP002" = ["pytest", "pytest-cov"]}
 
 [tool.coverage.run]
 omit = ["src/shrinkage/linear/_cov1para_debug.py"]
