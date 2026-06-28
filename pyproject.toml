@@ -19,7 +19,6 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    "cvx-linalg>=0.8.0",
     "numpy>=2.4.6",
 ]
 
@@ -40,9 +39,6 @@ lint = ["ruff>=0.15.18"]
 [tool.deptry]
 package_module_name_map = {"cvx-linalg" = "cvx"}
 per_rule_ignores = {"DEP002" = ["pytest", "pytest-cov"]}
-
-[tool.coverage.run]
-omit = ["src/shrinkage/linear/_cov1para_debug.py"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/shrinkage"]

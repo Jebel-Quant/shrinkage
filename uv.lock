@@ -116,18 +116,6 @@ toml = [
 ]
 
 [[package]]
-name = "cvx-linalg"
-version = "0.8.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/b8/a0/a1c198e4e01bf1eb2e61bdc81943be7fe80aad5c1fdff2504bf209505503/cvx_linalg-0.8.0.tar.gz", hash = "sha256:38533d446b88300c7dd776efee10105fce293e5a51819f9c42be38bbc8352ed8", size = 25520, upload-time = "2026-06-16T14:25:31.41Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/1a/13c31e88049fb033d3e858ba94e6d0a5aff812aff4f5857e29105efc18b8/cvx_linalg-0.8.0-py3-none-any.whl", hash = "sha256:8c2fc777037eb26ec30b5dc242ddfc05663a8d78f85e96180acd25a0a9cea61a", size = 28527, upload-time = "2026-06-16T14:25:30.238Z" },
-]
-
-[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -302,7 +290,6 @@ name = "shrinkage"
 version = "0.1.2"
 source = { editable = "." }
 dependencies = [
-    { name = "cvx-linalg" },
     { name = "numpy" },
 ]
 
@@ -323,7 +310,6 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cvx-linalg", specifier = ">=0.8.0" },
     { name = "numpy", specifier = ">=2.4.6" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
