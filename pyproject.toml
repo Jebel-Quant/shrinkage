@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "shrinkage"
 version = "0.1.2"
-description = "Linear and nonlinear shrinkage estimators following Ledoit and Wolf"
+description = "Linear shrinkage estimators for covariance matrices following Ledoit and Wolf"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
