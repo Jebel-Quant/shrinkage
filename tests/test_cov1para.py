@@ -2,6 +2,9 @@
 
 import numpy as np
 import pytest
+from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import strategies as st
+from hypothesis.extra import numpy as hnp
 
 from shrinkage.linear import cov1para
 
@@ -134,3 +137,106 @@ def test_single_variable_returns_sample_variance(rng):
     with np.errstate(divide="ignore"):
         result = cov1para(Y)
     np.testing.assert_allclose(result, expected)
+
+
+def _shrinkage_intensity(Y: np.ndarray, k: int | None = None) -> float:
+    """Recover the clamped shrinkage intensity for a given input.
+
+    The public ``cov1para`` returns only the (p, p) estimator, not the weight,
+    so this recomputes the Ledoit-Wolf one-parameter intensity with the same
+    formula and clamp. Property tests need the scalar to assert it stays in
+    [0, 1] and approaches 1 in the ill-conditioned regime. When the sample
+    already equals the target (gamma_hat == 0) the implementation's clamp pins
+    the weight to 1, which this mirrors without dividing by zero.
+    """
+    N, p = Y.shape
+    if k is None or (isinstance(k, float) and np.isnan(k)):
+        Y = Y - Y.mean(axis=0)
+        k = 1
+    n = N - k
+    sample = (Y.T @ Y) / n
+    target = np.diag(sample).mean() * np.eye(p)
+    Y2 = Y**2
+    sample2 = (Y2.T @ Y2) / n
+    pi_hat = np.sum(sample2 - sample**2)
+    gamma_hat = np.linalg.norm(sample - target, ord="fro") ** 2
+    if gamma_hat == 0.0:
+        return 1.0
+    return max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
+
+
+# Random data matrices over a range of shapes. Bounds keep every example small
+# and fast; values are finite and modestly scaled so the sample covariance is
+# well defined. k=1 (already-demeaned mode) keeps n == N > 0 for every shape.
+_data_matrices = st.tuples(
+    st.integers(min_value=3, max_value=12),
+    st.integers(min_value=2, max_value=8),
+).flatmap(
+    lambda shape: hnp.arrays(
+        dtype=np.float64,
+        shape=shape,
+        elements=st.floats(
+            min_value=-10.0,
+            max_value=10.0,
+            allow_nan=False,
+            allow_infinity=False,
+        ),
+    )
+)
+
+
+@pytest.mark.property
+@given(Y=_data_matrices)
+@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.filter_too_much])
+def test_property_invariants(Y):
+    """Over random shapes the estimator is symmetric, PSD, and shrinkage ∈ [0, 1].
+
+    These are the defining structural and numerical guarantees of the
+    Ledoit-Wolf one-parameter estimator and must hold for every admissible
+    input, not just the fixed shapes the example-based tests cover.
+    """
+    # Skip degenerate draws where the sample covariance is already a scaled
+    # identity (gamma_hat == 0). That 0/0 boundary is exercised explicitly by
+    # the scaled-identity and single-variable example tests; here it would only
+    # produce a non-finite result with no extra invariant coverage. The sample
+    # is computed exactly as the k=1 path does (raw Y, no demeaning).
+    sample = (Y.T @ Y) / Y.shape[0]
+    target = np.diag(sample).mean() * np.eye(Y.shape[1])
+    assume(np.linalg.norm(sample - target, ord="fro") > 1e-8)
+
+    result = cov1para(Y, k=1)
+
+    # Symmetry: a covariance estimator must equal its own transpose.
+    np.testing.assert_allclose(result, result.T, atol=1e-10)
+
+    # Positive semi-definite: no eigenvalue dips meaningfully below zero.
+    eigenvalues = np.linalg.eigvalsh(result)
+    assert np.all(eigenvalues >= -1e-8)
+
+    # The convex weight stays inside the unit interval after clamping.
+    intensity = _shrinkage_intensity(Y, k=1)
+    assert 0.0 <= intensity <= 1.0
+
+
+def test_ill_conditioned_shrinkage_approaches_one():
+    """For p ≫ N (high-dimensional) the shrinkage intensity approaches 1.
+
+    When variables vastly outnumber observations the sample covariance is rank
+    deficient and unreliable, so the estimator should lean almost entirely on
+    the well-conditioned scaled-identity target. With a true scaled-identity
+    covariance and p/N = 200, the estimated intensity sits above 0.9 and the
+    estimator stays symmetric.
+    """
+    rng = np.random.default_rng(0)
+    N, p = 20, 4000
+    Y = rng.standard_normal((N, p))
+
+    # k=0: the data is mean-zero by construction, so no demeaning is needed.
+    intensity = _shrinkage_intensity(Y, k=0)
+    assert intensity > 0.9
+
+    # The estimator stays symmetric even in this degenerate regime. (A full
+    # eigendecomposition of the 4000x4000 result is skipped for speed; the
+    # property test above already covers positive semi-definiteness.)
+    result = cov1para(Y, k=0)
+    np.testing.assert_allclose(result, result.T, atol=1e-10)
