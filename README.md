@@ -1,7 +1,7 @@
 # shrinkage
 
-Linear and nonlinear shrinkage estimators for covariance matrices, following
-Ledoit and Wolf.
+Linear shrinkage estimators for covariance matrices, following Ledoit and Wolf.
+Nonlinear shrinkage is planned but not yet implemented.
 
 Sample covariance matrices are noisy when the number of variables is large
 relative to the number of observations. Shrinkage pulls the sample estimate

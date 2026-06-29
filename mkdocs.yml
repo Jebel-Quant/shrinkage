@@ -1,7 +1,7 @@
 INHERIT: docs/mkdocs-base.yml
 
 site_name: shrinkage
-site_description: Linear and nonlinear shrinkage estimators following Ledoit and Wolf
+site_description: Linear shrinkage estimators for covariance matrices following Ledoit and Wolf
 site_author: Jebel Quant Research
 site_url: https://jebel-quant.github.io/shrinkage/
 repo_url: https://github.com/Jebel-Quant/shrinkage
