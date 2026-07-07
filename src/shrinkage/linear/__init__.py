@@ -3,7 +3,7 @@
 import numpy as np
 
 
-def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
+def cov1para(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
     """Linear shrinkage toward a scaled identity (one-parameter target).
 
     Shrinks the sample covariance matrix toward a target where all variances
@@ -14,12 +14,20 @@ def cov1para(Y: np.ndarray, k: int | None = None) -> np.ndarray:
     Y:
         Raw data matrix of shape (N, p): N iid observations on p variables.
     k:
-        Demeaning control. None (default): demean Y, reduce effective sample
-        size by 1. 0: no demeaning. 1: Y is already demeaned.
+        Demeaning control. None (default) or a float NaN: demean Y, reduce
+        effective sample size by 1. 0: no demeaning. 1: Y is already demeaned.
 
     Returns:
     -------
     Shrinkage covariance estimator of shape (p, p).
+
+    Raises:
+    ------
+    Degenerate inputs are not validated up front; they surface as numpy errors
+    from the underlying linear-algebra operations. Callers may see
+    ``ValueError`` (e.g. an empty or non-2D ``Y``), ``ZeroDivisionError`` or
+    ``FloatingPointError`` (e.g. a single observation with ``k`` giving n == 0),
+    or ``numpy.linalg.LinAlgError``.
 
     Examples:
         >>> import numpy as np
