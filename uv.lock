@@ -354,12 +354,6 @@ dependencies = [
     { name = "numpy" },
 ]
 
-[package.optional-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-
 [package.dev-dependencies]
 lint = [
     { name = "ruff" },
@@ -371,12 +365,7 @@ test = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "numpy", specifier = ">=2.4.6" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=9.1.1" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-]
-provides-extras = ["dev"]
+requires-dist = [{ name = "numpy", specifier = ">=2.4.6" }]
 
 [package.metadata.requires-dev]
 lint = [{ name = "ruff", specifier = ">=0.15.21" }]
