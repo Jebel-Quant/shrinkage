@@ -27,11 +27,11 @@ Repository = "https://github.com/Jebel-Quant/shrinkage"
 
 [dependency-groups]
 test = [
-    "hypothesis>=6.156.6",
+    "hypothesis>=6.157.2",
     "pytest>=9.1.1",
     "pytest-cov>=5.0",
 ]
-lint = ["ruff>=0.15.21"]
+lint = ["ruff>=0.15.22"]
 
 [tool.deptry]
 per_rule_ignores = {"DEP002" = ["pytest", "pytest-cov", "hypothesis"]}
