@@ -36,8 +36,40 @@ include .rhiza/rhiza.mk
 # hook environments are rebuilt on every run until that moves upstream.
 # ---------------------------------------------------------------------------
 
+# A second, optional config for hooks the template does not own.
+#
+# .pre-commit-config.yaml is template-owned, so hooks added there are lost on the
+# next rhiza-update. This file is invisible to the template (it is not in
+# .rhiza/template.lock), so it survives. Commit it for repo-local hooks, or keep
+# it out of the index via .git/info/exclude for personal ones -- .gitignore is
+# itself template-owned and would be reverted.
+#
+# prek merges nothing: recognised config filenames are prek.toml,
+# .pre-commit-config.yaml and .pre-commit-config.yml, and only one is read per
+# directory. So this is a genuinely separate config, run as a second pass. It
+# does get the full repo-wide file list, unlike prek's workspace mode, where a
+# nested config only ever sees files beneath its own directory.
+#
+# Consequences of it being a separate run, not a merge:
+#   - Top-level settings are NOT inherited. A node or python hook here needs its
+#     own `default_language_version` pin.
+#   - `prek install` bakes a single --config into .git/hooks/pre-commit, and
+#     there is only one such shim, so these hooks deliberately do NOT run on
+#     commit -- only via `make fmt` and CI. Do not point post-install at this
+#     file: that would silently stop the template's hooks from running on commit.
+PREK_EXTRA_CONFIG ?= .pre-commit-extra.yaml
+
+# Both passes always run and the target fails if either did, rather than make
+# aborting after the first: a failure in the template hooks must not hide one in
+# the local hooks.
 fmt: install-uv
-	@${UVX_BIN} -p ${PYTHON_VERSION} prek run --all-files
+	@rc=0; \
+	${UVX_BIN} -p ${PYTHON_VERSION} prek run --all-files || rc=1; \
+	if [ -f "${PREK_EXTRA_CONFIG}" ]; then \
+	  printf "${BLUE}[INFO] Running local hooks from ${PREK_EXTRA_CONFIG}...${RESET}\n"; \
+	  ${UVX_BIN} -p ${PYTHON_VERSION} prek run --all-files --config ${PREK_EXTRA_CONFIG} || rc=1; \
+	fi; \
+	exit $$rc
 
 # Replace the pre-commit shim that the template's `install` target writes just
 # before it calls post-install. --force is required precisely because that shim
