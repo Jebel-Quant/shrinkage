@@ -1,8 +1,10 @@
 """Tests for the cov1para linear shrinkage estimator."""
 
+import warnings
+
 import numpy as np
 import pytest
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra import numpy as hnp
 
@@ -99,9 +101,9 @@ def test_scaled_identity_input_is_a_fixed_point():
     """
     # Two orthogonal, equal-norm columns -> Y.T @ Y is a scaled identity.
     Y = np.array([[1.0, 1.0], [1.0, -1.0], [-1.0, 1.0], [-1.0, -1.0]])
-    # sample == target gives gamma_hat == 0; the clamp still yields the target.
-    with np.errstate(divide="ignore"):
-        result = cov1para(Y, k=0)
+    # sample == target gives gamma_hat == 0, which the estimator resolves to
+    # shrinkage 1 directly rather than through a division by zero.
+    result = cov1para(Y, k=0)
     diag = np.diag(result)
     off_diagonal = result - np.diag(diag)
     np.testing.assert_allclose(off_diagonal, np.zeros((2, 2)), atol=1e-12)
@@ -133,10 +135,37 @@ def test_single_variable_returns_sample_variance(rng):
     n = Y.shape[0] - 1
     Yd = Y - Y.mean(axis=0)
     expected = (Yd.T @ Yd) / n
-    # p == 1 makes sample == target (gamma_hat == 0); the clamp pins shrinkage.
-    with np.errstate(divide="ignore"):
-        result = cov1para(Y)
+    # p == 1 makes sample == target (gamma_hat == 0), pinning shrinkage to 1.
+    result = cov1para(Y)
     np.testing.assert_allclose(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("Y", "kwargs"),
+    [
+        # p == 1: the scaled-identity target is the sample covariance by definition.
+        (np.random.default_rng(42).standard_normal((100, 1)), {}),
+        # Orthogonal equal-norm columns: Y.T @ Y is already a scaled identity.
+        (np.array([[1.0, 1.0], [1.0, -1.0], [-1.0, 1.0], [-1.0, -1.0]]), {"k": 0}),
+    ],
+)
+def test_degenerate_target_emits_no_warning(Y, kwargs):
+    """Inputs where sample == target return cleanly instead of warning.
+
+    Both cases drive gamma_hat to exactly zero. Computing the intensity by
+    division would still yield the right answer -- inf, clamped to 1 -- but leak
+    a numpy divide-by-zero RuntimeWarning to the caller for a perfectly valid
+    input. The result must also stay finite and equal the target.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = cov1para(Y, **kwargs)
+
+    assert np.all(np.isfinite(result))
+    # shrinkage == 1 means the estimator is exactly the scaled-identity target.
+    diag = np.diag(result)
+    np.testing.assert_allclose(result, np.diag(diag))
+    np.testing.assert_allclose(diag, np.full(Y.shape[1], diag[0]))
 
 
 @pytest.mark.parametrize(
@@ -165,8 +194,8 @@ def _shrinkage_intensity(Y: np.ndarray, k: int | None = None) -> float:
     so this recomputes the Ledoit-Wolf one-parameter intensity with the same
     formula and clamp. Property tests need the scalar to assert it stays in
     [0, 1] and approaches 1 in the ill-conditioned regime. When the sample
-    already equals the target (gamma_hat == 0) the implementation's clamp pins
-    the weight to 1, which this mirrors without dividing by zero.
+    already equals the target (gamma_hat == 0) the implementation pins the
+    weight to 1, which this mirrors.
     """
     N, p = Y.shape
     if k is None or (isinstance(k, float) and np.isnan(k)):
@@ -206,7 +235,7 @@ _data_matrices = st.tuples(
 
 @pytest.mark.property
 @given(Y=_data_matrices)
-@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.filter_too_much])
+@settings(max_examples=200, deadline=None)
 def test_property_invariants(Y):
     """Over random shapes the estimator is symmetric, PSD, and shrinkage ∈ [0, 1].
 
@@ -214,15 +243,10 @@ def test_property_invariants(Y):
     Ledoit-Wolf one-parameter estimator and must hold for every admissible
     input, not just the fixed shapes the example-based tests cover.
     """
-    # Skip degenerate draws where the sample covariance is already a scaled
-    # identity (gamma_hat == 0). That 0/0 boundary is exercised explicitly by
-    # the scaled-identity and single-variable example tests; here it would only
-    # produce a non-finite result with no extra invariant coverage. The sample
-    # is computed exactly as the k=1 path does (raw Y, no demeaning).
-    sample = (Y.T @ Y) / Y.shape[0]
-    target = np.diag(sample).mean() * np.eye(Y.shape[1])
-    assume(np.linalg.norm(sample - target, ord="fro") > 1e-8)
-
+    # Degenerate draws where the sample covariance is already a scaled identity
+    # (gamma_hat == 0) are included rather than filtered out: the estimator pins
+    # shrinkage to 1 there and returns the target, so the invariants below hold
+    # on that boundary too and are worth asserting.
     result = cov1para(Y, k=1)
 
     # Symmetry: a covariance estimator must equal its own transpose.
