@@ -55,6 +55,11 @@ def cov1para(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
     pi_hat = np.sum(sample2 - sample**2)
     gamma_hat = np.linalg.norm(sample - target, ord="fro") ** 2
 
-    shrinkage = max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
+    # gamma_hat == 0 means the sample covariance already is the target exactly
+    # (always so for p == 1): there is no dispersion for the intensity to trade
+    # against, so the estimator is the target whatever weight is chosen. Taking
+    # the division would reach the same answer via inf and the clamp, but emit a
+    # numpy divide-by-zero RuntimeWarning at the caller for a valid input.
+    shrinkage = 1.0 if gamma_hat == 0.0 else max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
     estimator: np.ndarray = shrinkage * target + (1 - shrinkage) * sample
     return estimator
