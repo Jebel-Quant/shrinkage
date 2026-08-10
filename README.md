@@ -24,7 +24,7 @@ demeaning, or `k=1` if `Y` is already demeaned.
 
 ### Linear shrinkage
 
-`cov1para` implements the Ledoit-Wolf (2003) one-parameter estimator, which
+`cov1para` implements the Ledoit-Wolf (2004) one-parameter estimator, which
 shrinks the sample covariance toward a scaled identity (equal variances, zero
 covariances):
 

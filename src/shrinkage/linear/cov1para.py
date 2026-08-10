@@ -1,4 +1,4 @@
-"""The Ledoit-Wolf (2003) one-parameter linear shrinkage estimator."""
+"""The Ledoit-Wolf (2004) one-parameter linear shrinkage estimator."""
 
 from __future__ import annotations
 
@@ -11,7 +11,8 @@ def cov1para(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
     """Linear shrinkage toward a scaled identity (one-parameter target).
 
     Shrinks the sample covariance matrix toward a target where all variances
-    are equal and all covariances are zero. Ledoit and Wolf (2003, JEF).
+    are equal and all covariances are zero. Ledoit and Wolf (2004, JMVA), "A
+    well-conditioned estimator for large-dimensional covariance matrices".
 
     Parameters
     ----------
