@@ -28,7 +28,7 @@ Repository = "https://github.com/Jebel-Quant/shrinkage"
 
 [dependency-groups]
 test = [
-    "hypothesis>=6.161.8",
+    "hypothesis>=6.165.2",
     "pytest>=9.1.1",
 ]
 
