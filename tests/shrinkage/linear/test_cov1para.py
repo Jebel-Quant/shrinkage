@@ -187,30 +187,44 @@ def test_degenerate_inputs_raise_valueerror(Y, kwargs, match):
         cov1para(Y, **kwargs)
 
 
-def _shrinkage_intensity(Y: np.ndarray, k: int | None = None) -> float:
-    """Recover the clamped shrinkage intensity for a given input.
+def _recovered_intensity(Y: np.ndarray, result: np.ndarray, k: int) -> float | None:
+    """Read the shrinkage intensity back out of the returned estimator.
 
-    The public ``cov1para`` returns only the (p, p) estimator, not the weight,
-    so this recomputes the Ledoit-Wolf one-parameter intensity with the same
-    formula and clamp. Property tests need the scalar to assert it stays in
-    [0, 1] and approaches 1 in the ill-conditioned regime. When the sample
-    already equals the target (gamma_hat == 0) the implementation pins the
-    weight to 1, which this mirrors.
+    The public ``cov1para`` returns only the (p, p) matrix, not the weight, but
+    that matrix is by definition ``s * target + (1 - s) * sample``. So ``s`` can
+    be recovered by *inverting the convex combination* -- projecting
+    ``sample - result`` onto ``sample - target`` -- rather than by recomputing
+    the Ledoit-Wolf weight.
+
+    That distinction is the point. Only the sample covariance and the
+    scaled-identity target appear here, both of which are definitional; none of
+    the estimator's own machinery (``pi_hat``, ``gamma_hat``, the clamp) is
+    mentioned. An error in that machinery therefore shows up as a violated
+    invariant instead of being mirrored into the assertion, and so does a weight
+    applied the wrong way round -- which a recomputation cannot see at all,
+    because it never looks at ``result``.
+
+    Returns None when the weight is not identifiable: if the sample covariance
+    already is the target then every weight produces the same estimator, and
+    nothing can be read back from it. Near that boundary the projection loses
+    precision in proportion to how small ``sample - target`` is, so the guard is
+    relative to the size of the sample covariance rather than an exact zero.
+
+    ``k`` is the resolved demeaning control (an int), not the public argument's
+    ``None``/NaN sentinel: the callers below pass 1 or 0 explicitly.
     """
     N, p = Y.shape
-    if k is None or (isinstance(k, float) and np.isnan(k)):
-        Y = Y - Y.mean(axis=0)
-        k = 1
     n = N - k
     sample = (Y.T @ Y) / n
     target = np.diag(sample).mean() * np.eye(p)
-    Y2 = Y**2
-    sample2 = (Y2.T @ Y2) / n
-    pi_hat = np.sum(sample2 - sample**2)
-    gamma_hat = np.linalg.norm(sample - target, ord="fro") ** 2
-    if gamma_hat == 0.0:
-        return 1.0
-    return max(0.0, min(1.0, pi_hat / (gamma_hat * n)))
+    spread = sample - target
+
+    spread_norm2 = float(np.einsum("ij,ij->", spread, spread))
+    sample_norm2 = float(np.einsum("ij,ij->", sample, sample))
+    if spread_norm2 <= 1e-16 * sample_norm2:
+        return None
+
+    return float(np.einsum("ij,ij->", sample - result, spread)) / spread_norm2
 
 
 # Random data matrices over a range of shapes. Bounds keep every example small
@@ -244,9 +258,9 @@ def test_property_invariants(Y):
     input, not just the fixed shapes the example-based tests cover.
     """
     # Degenerate draws where the sample covariance is already a scaled identity
-    # (gamma_hat == 0) are included rather than filtered out: the estimator pins
-    # shrinkage to 1 there and returns the target, so the invariants below hold
-    # on that boundary too and are worth asserting.
+    # are included rather than filtered out: the estimator returns the target
+    # there, so symmetry and positive semi-definiteness hold on that boundary
+    # too and are worth asserting. Only the weight is unidentifiable there.
     result = cov1para(Y, k=1)
 
     # Symmetry: a covariance estimator must equal its own transpose.
@@ -256,9 +270,12 @@ def test_property_invariants(Y):
     eigenvalues = np.linalg.eigvalsh(result)
     assert np.all(eigenvalues >= -1e-8)
 
-    # The convex weight stays inside the unit interval after clamping.
-    intensity = _shrinkage_intensity(Y, k=1)
-    assert 0.0 <= intensity <= 1.0
+    # The convex weight actually applied stays inside the unit interval. The
+    # tolerance absorbs the rounding the projection inherits from `result`;
+    # None means this draw sits on the unidentifiable boundary described above.
+    intensity = _recovered_intensity(Y, result, k=1)
+    if intensity is not None:
+        assert -1e-6 <= intensity <= 1.0 + 1e-6
 
 
 def test_ill_conditioned_shrinkage_approaches_one():
@@ -267,19 +284,23 @@ def test_ill_conditioned_shrinkage_approaches_one():
     When variables vastly outnumber observations the sample covariance is rank
     deficient and unreliable, so the estimator should lean almost entirely on
     the well-conditioned scaled-identity target. With a true scaled-identity
-    covariance and p/N = 200, the estimated intensity sits above 0.9 and the
-    estimator stays symmetric.
+    covariance and p/N = 200, the returned estimator sits more than 90% of the
+    way from the sample covariance to the target, and stays symmetric.
     """
     rng = np.random.default_rng(0)
     N, p = 20, 4000
     Y = rng.standard_normal((N, p))
 
     # k=0: the data is mean-zero by construction, so no demeaning is needed.
-    intensity = _shrinkage_intensity(Y, k=0)
+    result = cov1para(Y, k=0)
+
+    # Read the weight back out of the returned matrix, so this asserts where the
+    # estimator actually landed rather than what the intensity formula computes.
+    intensity = _recovered_intensity(Y, result, k=0)
+    assert intensity is not None
     assert intensity > 0.9
 
     # The estimator stays symmetric even in this degenerate regime. (A full
     # eigendecomposition of the 4000x4000 result is skipped for speed; the
     # property test above already covers positive semi-definiteness.)
-    result = cov1para(Y, k=0)
     np.testing.assert_allclose(result, result.T, atol=1e-10)
