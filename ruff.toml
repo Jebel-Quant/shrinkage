@@ -122,18 +122,11 @@ line-ending = "auto"
 
 # File-specific rule exceptions
 [lint.per-file-ignores]
-# Shrinkage estimators follow Ledoit & Wolf notation (Y for the data matrix,
-# N/p for dimensions, Lj/Lj_i for kernel matrices), so uppercase names are
-# intentional throughout the package source. Descriptive ValueError messages
-# that name the offending input are likewise intentional (see input validation).
-"src/shrinkage/**/*.py" = [
-    "N803",     # Allow uppercase argument names (math convention, e.g. Y for data matrix)
-    "N806",     # Allow uppercase variable names (math convention, e.g. Y for data matrix)
-    "TRY003",   # Allow long, actionable ValueError messages naming the offending input
-]
-# All test code, wherever it lives (project suite under tests/, smoke tests under
-# .rhiza/tests/, and their bundle copies under bundles/). This glob subsumes the
-# project suite; tests/**/*.py below adds project-suite-only allowances on top.
+# All test code, wherever it lives (the project suite under tests/, and the bundle
+# copies under bundles/). This glob subsumes the project suite; tests/**/*.py below adds
+# project-suite-only allowances on top. It used to cover a third tree, `.rhiza/tests/`,
+# which the template synced; since #1540 the rhiza checks are an installed dependency and
+# there is no template-owned Python in a consumer's tree to exempt.
 "**/tests/**/*.py" = [
     "ANN",   # tests prioritize readability and fixtures over strict annotation coverage
     "S101",  # assert is the test idiom
@@ -141,7 +134,8 @@ line-ending = "auto"
     "S607",  # partial executable paths (git, make) are intentional in test drivers
     "ARG",   # pytest fixtures are requested by name for their side effects, not always read
 ]
-# Project test suite only — allowances the synced .rhiza/tests should not inherit
+# Project test suite only — allowances the broader glob above should not hand to the
+# bundle copies under bundles/
 "tests/**/*.py" = [
     "D103",     # Test functions don't require docstrings
     "ERA001",   # Allow commented out code in project tests
