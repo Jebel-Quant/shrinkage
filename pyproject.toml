@@ -32,6 +32,44 @@ test = [
     "pytest>=9.1.1",
 ]
 
+[tool.rhiza-task]
+# Settings for the task runner that replaced the synced make layer in rhiza v1.4.0. Read as
+# layer 3 of rhiza-task's resolution order (defaults -> .rhiza/.env -> pyproject.toml ->
+# RHIZA_* environment). Only entries that differ from the CLI's defaults belong here;
+# `uvx rhiza-task print <setting>` shows what one resolves to.
+#
+# This table is the missing half of the v1.4.2 migration: `chore: drop the retired Makefile
+# task layer` deleted the files that set the three values below, and every one of them is a
+# non-default, so without this table the gates quietly relaxed.
+
+# The deleted `Makefile` set `COVERAGE_FAIL_UNDER = 100`, raising python.mk's default of 90.
+# The `test` task passes --cov-fail-under on the command line, which outranks any
+# [tool.coverage.report] table, so this line is the only thing standing between the suite and
+# a ten-point drop in the gate.
+coverage-fail-under = 100
+
+# The retired python.mk had `TYPECHECKER ?= both`; the CLI defaults to `ty` alone, so the
+# deletion dropped `mypy --strict` from the typecheck gate. `both` is also stricter here than
+# it was under make: the shell `case` let mypy's exit status win, so a ty failure could pass,
+# where the CLI raises on each run.
+typechecker = "both"
+
+# The retired quality.mk pinned `RHIZA_CHECKS_VERSION ?= 0.2.1` and installed
+# `pytest-rhiza==$(RHIZA_CHECKS_VERSION)` from PyPI. The CLI's default names a git tag at
+# v0.2.0, so the deletion *downgraded* the conformance checks -- the drift the pin exists to
+# prevent. Pinned exactly rather than floored: a gate that moves under you is not a gate.
+pytest-rhiza = "pytest-rhiza==0.2.1"
+
+# Not set, on purpose:
+#   marimo-folder, source-folder -- `docs/notebooks` and `src` are what the deleted
+#                                   `.rhiza/.env` said, and both are already the defaults.
+#   mkdocs-extra-packages        -- the Makefile carried only `--with 'mkdocstrings[python]'`,
+#                                   which rhiza-task now makes the default.
+#   ci-os-matrix, layers         -- already the defaults.
+#
+# Not portable: the Makefile's `PREK_EXTRA_CONFIG ?= .pre-commit-extra.yaml` has no
+# rhiza-task equivalent. It was inert anyway -- no such file exists in this repo.
+
 [tool.deptry]
 per_rule_ignores = {"DEP002" = ["pytest", "hypothesis"]}
 
