@@ -122,6 +122,15 @@ line-ending = "auto"
 
 # File-specific rule exceptions
 [lint.per-file-ignores]
+# Shrinkage estimators follow Ledoit & Wolf notation (Y for the data matrix,
+# N/p for dimensions, Lj/Lj_i for kernel matrices), so uppercase names are
+# intentional throughout the package source. Descriptive ValueError messages
+# that name the offending input are likewise intentional (see input validation).
+"src/shrinkage/**/*.py" = [
+    "N803",     # Allow uppercase argument names (math convention, e.g. Y for data matrix)
+    "N806",     # Allow uppercase variable names (math convention, e.g. Y for data matrix)
+    "TRY003",   # Allow long, actionable ValueError messages naming the offending input
+]
 # All test code, wherever it lives (the project suite under tests/, and the bundle
 # copies under bundles/). This glob subsumes the project suite; tests/**/*.py below adds
 # project-suite-only allowances on top. It used to cover a third tree, `.rhiza/tests/`,
