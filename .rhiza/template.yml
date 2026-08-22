@@ -5,7 +5,3 @@ profiles:
   - github-project
 templates:
   - legal
-
-exclude:
-  - .github/workflows/rhiza_fuzzing.yml
-  - .github/workflows/rhiza_mutation.yml
