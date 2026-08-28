@@ -14,7 +14,7 @@ nav:
   - Home: index.md
   - API Reference: api.md
   - Development:
-      - Tests: development/TESTS.md
+      - Rhiza: development/rhiza.md
 
 extra:
   social:
