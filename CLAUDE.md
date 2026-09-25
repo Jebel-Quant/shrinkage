@@ -24,9 +24,8 @@ The public API is flat and declared three times over, each level with its own
 `shrinkage/nonlinear/__init__.py`. A new estimator goes in the matching
 subpackage and is re-exported up both levels.
 
-`src/shrinkage/nonlinear/.gitkeep` and `tests/resources/.gitkeep` are placeholders
-holding otherwise-empty directories in git — leave them until there is real
-content beside them.
+`tests/resources/.gitkeep` is a placeholder holding an otherwise-empty directory
+in git — leave it until there is real content beside it.
 
 ## Ownership: locally owned vs Rhiza-managed
 
@@ -88,7 +87,7 @@ every task the pinned CLI knows, plus anything `local.mk` adds.
 - `make deps` — deptry unused/missing dependency analysis
 - `make security` — the bandit scan
 - `make license` — fail on GPL/LGPL/AGPL
-- `make rhiza-test` — the rhiza repository checks, from `pytest-rhiza==0.2.1`
+- `make rhiza-test` — the rhiza repository checks, from `pytest-rhiza==0.6.0`
 - `make all` — the gate set CI runs
 
 Do not reach for `make mutation`. The task still exists in the CLI, but rhiza
@@ -125,8 +124,10 @@ src/shrinkage/nonlinear/__init__.py  → tests/shrinkage/nonlinear/test___init__
 src/shrinkage/nonlinear/qis.py       → tests/shrinkage/nonlinear/test_qis.py
 ```
 
-`tests/test_rhiza_packaging.py` is the repo-level exception. Shared fixtures live
-in `tests/conftest.py`; `tests/resources/` is empty apart from its `.gitkeep`.
+`tests/test_rhiza_packaging.py` is the repo-level exception — and it is
+Rhiza-managed (listed in `.rhiza/template.lock`), so fix it upstream rather than
+editing it here. Shared fixtures live in `tests/conftest.py`; `tests/resources/`
+is empty apart from its `.gitkeep`.
 
 Because these are estimators, prefer properties over golden numbers where you
 can: symmetry, positive-definiteness, and the limiting cases (shrinkage
