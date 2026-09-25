@@ -39,7 +39,11 @@ def nonlinear_shrinkage(Y: np.ndarray, k: int | float | None = None) -> np.ndarr
     ValueError
         If ``Y`` is not a 2-D array, has no variables or observations, contains
         non-finite values, or the effective sample size ``n = N - k`` is not
-        positive. The message names the offending argument/condition.
+        positive. Also if the sample covariance is rank-deficient beyond what
+        ``p > n`` implies -- fewer than ``min(p, n)`` numerically positive
+        eigenvalues, as from a duplicated, collinear or constant column -- since
+        QIS inverts those eigenvalues. The message names the offending
+        argument/condition.
 
     Notes:
     -----
@@ -72,6 +76,18 @@ def nonlinear_shrinkage(Y: np.ndarray, k: int | float | None = None) -> np.ndarr
 
     # Inverse of the min(p, n) non-null (largest) eigenvalues.
     pn = min(p, int(n))
+    # Those eigenvalues must be positive for the inverse to exist. Below this
+    # relative tolerance (numpy's matrix_rank convention) an eigenvalue is
+    # rounding noise from an exactly singular matrix, and inverting it yields
+    # NaN or a meaningless finite estimate rather than an error.
+    tol = lam[-1] * max(N, p) * np.finfo(lam.dtype).eps
+    if lam[p - pn] <= tol:
+        rank = int(np.count_nonzero(lam > tol))
+        raise ValueError(
+            f"The sample covariance of Y is rank-deficient: rank {rank}, but QIS needs "
+            f"min(p, n) = {pn} positive eigenvalues. Remove duplicated, collinear or "
+            "constant columns."
+        )
     invlambda = 1.0 / lam[p - pn :]
 
     # Smoothed Stein shrinker and its Hilbert-transform conjugate.
