@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from shrinkage._validation import effective_sample_size, validate_observation_matrix
+from shrinkage._validation import effective_sample_size, resolve_demeaning, validate_observation_matrix
 
 
 def nonlinear_shrinkage(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
@@ -51,15 +51,15 @@ def nonlinear_shrinkage(Y: np.ndarray, k: int | float | None = None) -> np.ndarr
         >>> import numpy as np
         >>> rng = np.random.default_rng(42)
         >>> Y = rng.standard_normal((100, 30))
-        >>> nonlinear_shrinkage(Y).shape
+        >>> S = nonlinear_shrinkage(Y)
+        >>> S.shape
         (30, 30)
+        >>> bool(np.isclose(np.trace(S), np.trace(np.cov(Y, rowvar=False))))
+        True
     """
     N, p = validate_observation_matrix(Y)
 
-    if k is None or (isinstance(k, float) and np.isnan(k)):
-        Y = Y - Y.mean(axis=0)
-        k = 1
-
+    Y, k = resolve_demeaning(Y, k)
     n = effective_sample_size(N, k)
     c = p / n  # concentration ratio
 

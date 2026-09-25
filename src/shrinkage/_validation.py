@@ -72,3 +72,23 @@ def effective_sample_size(N: int, k: int | float) -> int | float:
             "Provide more observations or a smaller demeaning control k."
         )
     return n
+
+
+def resolve_demeaning(Y: np.ndarray, k: int | float | None) -> tuple[np.ndarray, int | float]:
+    """Apply the demeaning control ``k`` to ``Y`` and return the resolved pair.
+
+    Parameters
+    ----------
+    Y:
+        Raw data matrix of shape ``(N, p)``, already validated.
+    k:
+        Demeaning control. ``None`` or a float NaN: demean ``Y`` and resolve
+        ``k`` to ``1``. Any other value is returned unchanged with ``Y``.
+
+    Returns:
+    -------
+    The (possibly demeaned) data matrix and the numeric demeaning control.
+    """
+    if k is None or (isinstance(k, float) and np.isnan(k)):
+        return Y - Y.mean(axis=0), 1
+    return Y, k
