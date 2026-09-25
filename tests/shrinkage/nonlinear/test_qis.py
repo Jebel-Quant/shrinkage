@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from hypothesis import HealthCheck, assume, given, settings
+from hypothesis import given, settings
 from hypothesis import strategies as st
 from hypothesis.extra import numpy as hnp
 
@@ -146,6 +146,33 @@ def test_degenerate_inputs_raise_valueerror(Y, kwargs, match):
         nonlinear_shrinkage(Y, **kwargs)
 
 
+def _with_duplicated_column(N: int, p: int) -> np.ndarray:
+    """Return standard-normal data whose last column repeats its first."""
+    Y = np.random.default_rng(N * p).standard_normal((N, p))
+    Y[:, -1] = Y[:, 0]
+    return Y
+
+
+@pytest.mark.parametrize(
+    "Y",
+    [
+        pytest.param(_with_duplicated_column(50, 4), id="duplicated-column"),
+        pytest.param(_with_duplicated_column(200, 150), id="duplicated-column-p-near-n"),
+        pytest.param(np.column_stack([np.random.default_rng(3).standard_normal((40, 3)), np.ones(40)]), id="constant"),
+        pytest.param(np.ones((10, 3)), id="constant-data"),
+    ],
+)
+def test_rank_deficient_input_raises_valueerror(Y):
+    """A sample covariance with fewer than min(p, n) positive eigenvalues is refused.
+
+    QIS inverts the min(p, n) largest sample eigenvalues. Duplicated or constant
+    columns make one of them exactly zero, which used to come back as an all-NaN
+    estimate with only a numpy RuntimeWarning.
+    """
+    with pytest.raises(ValueError, match="rank-deficient"):
+        nonlinear_shrinkage(Y)
+
+
 # Random data matrices spanning both the p<=n and p>n regimes. k=1
 # (already-demeaned mode) keeps the effective sample size n == N > 0.
 _data_matrices = st.tuples(
@@ -162,23 +189,31 @@ _data_matrices = st.tuples(
 
 @pytest.mark.property
 @given(Y=_data_matrices)
-@settings(max_examples=200, deadline=None, suppress_health_check=[HealthCheck.filter_too_much])
+@settings(max_examples=200, deadline=None)
 def test_property_invariants(Y):
-    """Over random shapes the estimator is symmetric and positive semi-definite.
+    """Over random shapes the estimator is finite, symmetric and PSD -- or refuses.
 
     These structural guarantees must hold for every admissible input, across
     both the non-singular (p<=n) and singular (p>n) regimes, not just the fixed
-    shapes the example-based tests cover.
+    shapes the example-based tests cover. Rank-deficient draws (all-zero rows,
+    repeated columns) are kept rather than filtered out: they may be refused
+    with a ValueError, but never answered with a NaN estimate.
     """
     N, p = Y.shape
-    # Skip rank-deficient draws whose retained eigenvalues collapse to ~0: their
-    # inverses blow up and the 0/0 boundary carries no extra invariant coverage.
-    sample = (Y.T @ Y) / N
-    retained = np.linalg.eigvalsh(sample)[p - min(p, N) :]
-    assume(retained.min() > 1e-6)
+    retained = np.linalg.eigvalsh((Y.T @ Y) / N)[p - min(p, N) :]
+    if retained.min() <= 1e-6 * retained.max():
+        # Near or exactly rank-deficient. Refusing is allowed here, and only
+        # here; the bound is far looser than the estimator's own tolerance, so
+        # it does not restate it. test_rank_deficient_input_raises_valueerror
+        # pins the message.
+        try:
+            result = nonlinear_shrinkage(Y, k=1)
+        except ValueError:
+            return
+    else:
+        result = nonlinear_shrinkage(Y, k=1)
 
-    result = nonlinear_shrinkage(Y, k=1)
-
+    assert np.all(np.isfinite(result))
     np.testing.assert_allclose(result, result.T, atol=1e-8)
     eigenvalues = np.linalg.eigvalsh(result)
     assert np.all(eigenvalues >= -1e-8)
