@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from shrinkage._validation import effective_sample_size, validate_observation_matrix
+from shrinkage._validation import effective_sample_size, resolve_demeaning, validate_observation_matrix
 
 
 def cov1para(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
@@ -38,15 +38,15 @@ def cov1para(Y: np.ndarray, k: int | float | None = None) -> np.ndarray:
         >>> import numpy as np
         >>> rng = np.random.default_rng(42)
         >>> Y = rng.standard_normal((100, 3))
-        >>> cov1para(Y).shape
+        >>> S = cov1para(Y)
+        >>> S.shape
         (3, 3)
+        >>> bool(np.allclose(S, S.T))
+        True
     """
     N, p = validate_observation_matrix(Y)
 
-    if k is None or (isinstance(k, float) and np.isnan(k)):
-        Y = Y - Y.mean(axis=0)
-        k = 1
-
+    Y, k = resolve_demeaning(Y, k)
     n = effective_sample_size(N, k)
     sample = (Y.T @ Y) / n
     target = np.diag(sample).mean() * np.eye(p)
