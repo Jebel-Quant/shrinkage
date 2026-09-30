@@ -28,21 +28,18 @@ demeaning, or `k=1` if `Y` is already demeaned.
 shrinks the sample covariance toward a scaled identity (equal variances, zero
 covariances):
 
-```python
-import numpy as np
+```pycon
+>>> import numpy as np
 
-from shrinkage.linear import cov1para
+>>> from shrinkage.linear import cov1para
 
-rng = np.random.default_rng(0)
-Y = rng.standard_normal((250, 3))  # 250 observations, 3 variables
+>>> rng = np.random.default_rng(0)
+>>> Y = rng.standard_normal((250, 3))  # 250 observations, 3 variables
 
-estimator = cov1para(Y)
-print(estimator.shape)
-print(np.allclose(estimator, estimator.T))  # symmetric
-```
-
-```result
+>>> estimator = cov1para(Y)
+>>> print(estimator.shape)
 (3, 3)
+>>> print(np.allclose(estimator, estimator.T))  # symmetric
 True
 ```
 
@@ -53,21 +50,18 @@ True
 eigenvalue spectrum, which is especially effective in the high-dimensional
 regime where `p` is comparable to (or larger than) `N`:
 
-```python
-import numpy as np
+```pycon
+>>> import numpy as np
 
-from shrinkage.nonlinear import nonlinear_shrinkage
+>>> from shrinkage.nonlinear import nonlinear_shrinkage
 
-rng = np.random.default_rng(0)
-Y = rng.standard_normal((200, 50))  # 200 observations, 50 variables
+>>> rng = np.random.default_rng(0)
+>>> Y = rng.standard_normal((200, 50))  # 200 observations, 50 variables
 
-estimator = nonlinear_shrinkage(Y)
-print(estimator.shape)
-print(np.allclose(estimator, estimator.T))  # symmetric
-```
-
-```result
+>>> estimator = nonlinear_shrinkage(Y)
+>>> print(estimator.shape)
 (50, 50)
+>>> print(np.allclose(estimator, estimator.T))  # symmetric
 True
 ```
 
